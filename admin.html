@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Управление — Game Catalog</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="glow glow-one"></div>
+  <div class="glow glow-two"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div>
+        <div class="brand-title">GAME CATALOG</div>
+        <div class="brand-subtitle">Управление коллекцией</div>
+      </div>
+    </div>
+    <a class="admin-link" href="index.html">← К каталогу</a>
+  </header>
+
+  <main class="admin-container">
+    <section class="hero admin-hero">
+      <p class="eyebrow">ADMIN</p>
+      <h1>Добавить игру</h1>
+      <p class="hero-text">Загрузи изображение карточки, укажи название, описание и ссылку Steam.</p>
+    </section>
+
+    <section class="panel">
+      <form id="gameForm">
+        <input type="hidden" id="gameId">
+
+        <div class="form-grid">
+          <label>
+            Название игры
+            <input id="title" type="text" placeholder="Например: Cyberpunk 2077" required maxlength="100">
+          </label>
+
+          <label>
+            Ссылка на Steam
+            <input id="steamUrl" type="url" placeholder="https://store.steampowered.com/app/..." required>
+          </label>
+
+          <label class="full">
+            Описание / текст
+            <textarea id="description" rows="6" placeholder="Напиши здесь свой текст..." required maxlength="4000"></textarea>
+          </label>
+
+          <label class="full upload-box">
+            Изображение карточки
+            <input id="image" type="file" accept="image/*">
+            <span class="upload-hint">PNG, JPG, WEBP — рекомендуется широкая картинка</span>
+            <img id="preview" class="preview hidden" alt="Предпросмотр">
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button class="primary-btn" type="submit" id="saveBtn">Добавить игру</button>
+          <button class="secondary-btn hidden" type="button" id="cancelEdit">Отмена</button>
+        </div>
+        <p id="message" class="message"></p>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <div>
+          <p class="eyebrow">COLLECTION</p>
+          <h2>Мои игры</h2>
+        </div>
+        <span id="countBadge" class="count-badge">0</span>
+      </div>
+      <div id="adminList" class="admin-list"></div>
+    </section>
+  </main>
+
+  <script src="admin.js"></script>
+</body>
+</html>
