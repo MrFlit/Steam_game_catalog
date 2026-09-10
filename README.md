@@ -11,3 +11,7 @@
 5. В браузер не помещай Secret/service_role key.
 
 Админка: `/admin`. Публичный каталог: `/`.
+
+
+## Site settings
+Выполни `supabase/settings.sql` один раз. Он создаёт `site_settings` для URL расширения.
