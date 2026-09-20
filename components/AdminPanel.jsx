@@ -1,38 +1,46 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
 const BUCKET = "game-images";
-const BACKUP_FORMAT = "steam-game-catalog-backup";
-const BACKUP_VERSION = 1;
 
 function Header({ email }) {
   return (
-    <header className="topbar admin-topbar">
+    <header className="topbar admin-header">
       <div className="brand">
         <div className="brand-mark">S</div>
 
         <div className="brand-copy">
-          <div className="brand-title">GAME CATALOG</div>
+          <div className="brand-title">
+            GAME CATALOG
+          </div>
+
           <div className="brand-subtitle">
-            {email || "Управление коллекцией"}
+            {email ||
+              "Управление коллекцией"}
           </div>
         </div>
       </div>
 
-      <div className="top-actions">
+      <div className="top-actions admin-header-actions">
         <button
           className="secondary-btn"
           type="button"
-          onClick={() => supabase.auth.signOut()}
+          onClick={() =>
+            supabase.auth.signOut()
+          }
         >
           Выйти
         </button>
 
-        <Link className="admin-link" href="/">
-          ← К каталогу
+        <Link
+          className="admin-link"
+          href="/"
+        >
+          <span>←</span>
+          <span>К каталогу</span>
         </Link>
       </div>
     </header>
@@ -40,77 +48,99 @@ function Header({ email }) {
 }
 
 export default function AdminPanel() {
-  const [session, setSession] = useState(null);
-  const [checked, setChecked] = useState(false);
+  const [session, setSession] =
+    useState(null);
 
-  const [games, setGames] = useState([]);
-  const [editing, setEditing] = useState(null);
+  const [checked, setChecked] =
+    useState(false);
 
-  const [file, setFile] = useState(null);
-  const [preview, setPreview] = useState("");
+  const [games, setGames] =
+    useState([]);
 
-  const [extensionUrl, setExtensionUrl] = useState("");
-  const [search, setSearch] = useState("");
+  const [editing, setEditing] =
+    useState(null);
 
-  const [dragged, setDragged] = useState(null);
-  const [dragOver, setDragOver] = useState(null);
+  const [file, setFile] =
+    useState(null);
 
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
+  const [preview, setPreview] =
+    useState("");
 
-  const backupInputRef = useRef(null);
+  const [msg, setMsg] =
+    useState("");
 
-  const pointerDragRef = useRef({
-    id: null,
-    item: null,
-    ghost: null,
-    startY: 0,
-    currentY: 0,
-    cleanup: null,
-  });
+  const [err, setErr] =
+    useState("");
+
+  const [dragged, setDragged] =
+    useState(null);
+
+  const [
+    extensionUrl,
+    setExtensionUrl,
+  ] = useState("");
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setChecked(true);
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(
+          data.session
+        );
+        setChecked(true);
+      });
 
     const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setSession(newSession);
-      }
-    );
+      data: {
+        subscription,
+      },
+    } =
+      supabase.auth.onAuthStateChange(
+        (_event, newSession) => {
+          setSession(
+            newSession
+          );
+        }
+      );
 
-    return () => subscription.unsubscribe();
+    return () =>
+      subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (session) load();
+    if (session) {
+      load();
+    }
   }, [session]);
 
   async function load() {
     setErr("");
 
-    const [{ data, error }, { data: setting }] =
-      await Promise.all([
-        supabase
-          .from("games")
-          .select("*")
-          .order("sort_order", {
-            ascending: true,
-          })
-          .order("created_at", {
-            ascending: true,
-          }),
+    const [
+      { data, error },
+      { data: setting },
+    ] = await Promise.all([
+      supabase
+        .from("games")
+        .select("*")
+        .order(
+          "sort_order",
+          { ascending: true }
+        )
+        .order(
+          "created_at",
+          { ascending: true }
+        ),
 
-        supabase
-          .from("site_settings")
-          .select("value")
-          .eq("key", "extension_download_url")
-          .maybeSingle(),
-      ]);
+      supabase
+        .from("site_settings")
+        .select("value")
+        .eq(
+          "key",
+          "extension_download_url"
+        )
+        .maybeSingle(),
+    ]);
 
     if (error) {
       setErr(error.message);
@@ -118,7 +148,9 @@ export default function AdminPanel() {
     }
 
     setGames(data || []);
-    setExtensionUrl(setting?.value || "");
+    setExtensionUrl(
+      setting?.value || ""
+    );
   }
 
   function reset() {
@@ -127,7 +159,9 @@ export default function AdminPanel() {
     setPreview("");
 
     document
-      .getElementById("gameForm")
+      .getElementById(
+        "gameForm"
+      )
       ?.reset();
 
     setMsg("");
@@ -137,15 +171,22 @@ export default function AdminPanel() {
   function start(game) {
     setEditing(game);
     setFile(null);
-    setPreview(game.image_url);
+    setPreview(
+      game.image_url
+    );
 
-    document.getElementById("title").value =
-      game.title;
+    document.getElementById(
+      "title"
+    ).value = game.title;
 
-    document.getElementById("steam_url").value =
+    document.getElementById(
+      "steam_url"
+    ).value =
       game.steam_url;
 
-    document.getElementById("description").value =
+    document.getElementById(
+      "description"
+    ).value =
       game.description;
 
     window.scrollTo({
@@ -154,42 +195,66 @@ export default function AdminPanel() {
     });
   }
 
-  async function upload(fileToUpload) {
-    const safeName = fileToUpload.name
-      .toLowerCase()
-      .replace(/[^a-z0-9._-]+/g, "-");
+  async function upload(
+    fileToUpload
+  ) {
+    const safeName =
+      fileToUpload.name
+        .toLowerCase()
+        .replace(
+          /[^a-z0-9._-]+/g,
+          "-"
+        );
 
     const path = `${crypto.randomUUID()}-${safeName}`;
 
-    const { error } = await supabase.storage
+    const {
+      error,
+    } = await supabase.storage
       .from(BUCKET)
-      .upload(path, fileToUpload, {
-        cacheControl: "31536000",
-        upsert: false,
-      });
+      .upload(
+        path,
+        fileToUpload,
+        {
+          cacheControl:
+            "31536000",
+          upsert: false,
+        }
+      );
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
 
     return supabase.storage
       .from(BUCKET)
-      .getPublicUrl(path).data.publicUrl;
+      .getPublicUrl(
+        path
+      ).data.publicUrl;
   }
 
   function oldPath(url) {
     const marker =
       `/storage/v1/object/public/${BUCKET}/`;
 
-    const index = url.indexOf(marker);
+    const index =
+      url.indexOf(marker);
 
     return index >= 0
       ? decodeURIComponent(
-          url.slice(index + marker.length)
+          url.slice(
+            index +
+              marker.length
+          )
         )
       : null;
   }
 
-  async function removeImage(url) {
-    const path = oldPath(url);
+  async function removeImage(
+    url
+  ) {
+    const path =
+      oldPath(url);
 
     if (path) {
       await supabase.storage
@@ -198,30 +263,46 @@ export default function AdminPanel() {
     }
   }
 
-  async function save(event) {
+  async function save(
+    event
+  ) {
     event.preventDefault();
 
     setErr("");
     setMsg("");
 
-    const form = event.currentTarget;
+    const form =
+      event.currentTarget;
 
-    const title = form.title.value.trim();
+    const title =
+      form.title.value.trim();
+
     const steam_url =
       form.steam_url.value.trim();
+
     const description =
       form.description.value.trim();
 
-    if (!title || !steam_url || !description) {
-      setErr("Заполни все поля.");
+    if (
+      !title ||
+      !steam_url ||
+      !description
+    ) {
+      setErr(
+        "Заполни все поля."
+      );
       return;
     }
 
     try {
-      const parsed = new URL(steam_url);
+      const parsed =
+        new URL(
+          steam_url
+        );
 
       if (
-        parsed.protocol !== "https:" ||
+        parsed.protocol !==
+          "https:" ||
         !(
           parsed.hostname ===
             "store.steampowered.com" ||
@@ -240,22 +321,29 @@ export default function AdminPanel() {
 
     try {
       let image_url =
-        editing?.image_url || "";
+        editing?.image_url ||
+        "";
 
       const oldImageUrl =
-        editing?.image_url || null;
+        editing?.image_url ||
+        null;
 
       if (file) {
-        image_url = await upload(file);
+        image_url =
+          await upload(file);
       }
 
       if (!image_url) {
-        setErr("Выбери изображение.");
+        setErr(
+          "Выбери изображение."
+        );
         return;
       }
 
       if (editing) {
-        const { error } = await supabase
+        const {
+          error,
+        } = await supabase
           .from("games")
           .update({
             title,
@@ -263,30 +351,44 @@ export default function AdminPanel() {
             description,
             image_url,
           })
-          .eq("id", editing.id);
+          .eq(
+            "id",
+            editing.id
+          );
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
         if (
           file &&
           oldImageUrl &&
-          oldImageUrl !== image_url
+          oldImageUrl !==
+            image_url
         ) {
-          await removeImage(oldImageUrl);
+          await removeImage(
+            oldImageUrl
+          );
         }
 
-        setMsg("Игра обновлена.");
+        setMsg(
+          "Игра обновлена."
+        );
       } else {
-        const sort_order = games.length
-          ? Math.max(
-              ...games.map(
-                (game) =>
-                  game.sort_order || 0
-              )
-            ) + 1
-          : 0;
+        const sort_order =
+          games.length
+            ? Math.max(
+                ...games.map(
+                  (game) =>
+                    game.sort_order ||
+                    0
+                )
+              ) + 1
+            : 0;
 
-        const { error } = await supabase
+        const {
+          error,
+        } = await supabase
           .from("games")
           .insert({
             title,
@@ -294,12 +396,17 @@ export default function AdminPanel() {
             description,
             image_url,
             sort_order,
-            source: "manual",
+            source:
+              "manual",
           });
 
-        if (error) throw error;
+        if (error) {
+          throw error;
+        }
 
-        setMsg("Игра добавлена.");
+        setMsg(
+          "Игра добавлена."
+        );
       }
 
       setEditing(null);
@@ -309,7 +416,9 @@ export default function AdminPanel() {
       form.reset();
 
       await load();
-    } catch (error) {
+    } catch (
+      error
+    ) {
       setErr(
         error?.message ||
           "Ошибка сохранения."
@@ -329,315 +438,126 @@ export default function AdminPanel() {
     setErr("");
     setMsg("");
 
-    const { error } = await supabase
+    const {
+      error,
+    } = await supabase
       .from("games")
       .delete()
-      .eq("id", game.id);
+      .eq(
+        "id",
+        game.id
+      );
 
     if (error) {
-      setErr(error.message);
+      setErr(
+        error.message
+      );
       return;
     }
 
-    await removeImage(game.image_url);
+    await removeImage(
+      game.image_url
+    );
+
     await load();
 
-    setMsg("Игра удалена.");
-  }
-
-  function getFilteredGames() {
-    const query = search.trim().toLowerCase();
-
-    if (!query) return games;
-
-    return games.filter((game) =>
-      [game.title, game.description, game.steam_url]
-        .join(" ")
-        .toLowerCase()
-        .includes(query)
+    setMsg(
+      "Игра удалена."
     );
   }
 
-  function clearPointerDrag() {
-    const state = pointerDragRef.current;
-
-    if (state.cleanup) {
-      state.cleanup();
-    }
-
-    if (state.ghost) {
-      state.ghost.remove();
-    }
-
-    pointerDragRef.current = {
-      id: null,
-      item: null,
-      ghost: null,
-      startY: 0,
-      currentY: 0,
-      cleanup: null,
-    };
-
-    document.body.classList.remove(
-      "admin-dragging"
-    );
-
-    setDragged(null);
-    setDragOver(null);
-  }
-
-  function createDragGhost(item) {
-    const rect =
-      item.getBoundingClientRect();
-
-    const ghost = item.cloneNode(true);
-
-    ghost.classList.add(
-      "admin-drag-ghost"
-    );
-
-    ghost.style.width = `${rect.width}px`;
-    ghost.style.left = `${rect.left}px`;
-    ghost.style.top = `${rect.top}px`;
-
-    document.body.appendChild(ghost);
-
-    return ghost;
-  }
-
-  function findTargetId(clientX, clientY) {
-    const element =
-      document.elementFromPoint(
-        clientX,
-        clientY
-      );
-
-    const target =
-      element?.closest?.(
-        "[data-admin-game-id]"
-      );
-
-    return target?.dataset.adminGameId || null;
-  }
-
-  async function reorderGames(
-    fromId,
+  async function drop(
     targetId
   ) {
     if (
-      !fromId ||
-      !targetId ||
-      fromId === targetId
+      !dragged ||
+      dragged === targetId
     ) {
       return;
     }
 
-    const fromIndex = games.findIndex(
-      (game) =>
-        game.id === fromId
-    );
+    const from =
+      games.findIndex(
+        (game) =>
+          game.id ===
+          dragged
+      );
 
-    const toIndex = games.findIndex(
-      (game) =>
-        game.id === targetId
-    );
+    const to =
+      games.findIndex(
+        (game) =>
+          game.id ===
+          targetId
+      );
 
     if (
-      fromIndex < 0 ||
-      toIndex < 0
+      from < 0 ||
+      to < 0
     ) {
       return;
     }
 
-    const reordered = [...games];
+    const reordered =
+      [...games];
 
     const [moved] =
       reordered.splice(
-        fromIndex,
+        from,
         1
       );
 
     reordered.splice(
-      toIndex,
+      to,
       0,
       moved
     );
 
-    setGames(reordered);
-    setErr("");
-    setMsg("");
+    setGames(
+      reordered
+    );
 
-    try {
-      const results =
-        await Promise.all(
-          reordered.map(
-            (game, index) =>
-              supabase
-                .from("games")
-                .update({
-                  sort_order:
-                    index,
-                })
-                .eq(
-                  "id",
-                  game.id
-                )
-          )
-        );
+    setDragged(
+      null
+    );
 
-      const failed =
-        results.find(
-          (result) =>
-            result.error
-        );
+    const results =
+      await Promise.all(
+        reordered.map(
+          (
+            game,
+            index
+          ) =>
+            supabase
+              .from(
+                "games"
+              )
+              .update({
+                sort_order:
+                  index,
+              })
+              .eq(
+                "id",
+                game.id
+              )
+        )
+      );
 
-      if (failed) {
-        throw failed.error;
-      }
+    const failed =
+      results.find(
+        (result) =>
+          result.error
+      );
 
+    if (failed) {
+      setErr(
+        failed.error.message
+      );
+      await load();
+    } else {
       setMsg(
         "Порядок игр сохранён."
       );
-    } catch (error) {
-      setErr(
-        error?.message ||
-          "Не удалось сохранить порядок."
-      );
-
-      await load();
     }
-  }
-
-  function beginPointerDrag(
-    event,
-    game
-  ) {
-    if (search.trim()) {
-      return;
-    }
-
-    if (
-      event.pointerType ===
-        "mouse" &&
-      event.button !== 0
-    ) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const item =
-      event.currentTarget.closest(
-        "[data-admin-game-id]"
-      );
-
-    if (!item) return;
-
-    const ghost =
-      createDragGhost(item);
-
-    const state =
-      pointerDragRef.current;
-
-    state.id = game.id;
-    state.item = item;
-    state.ghost = ghost;
-    state.startY =
-      event.clientY;
-    state.currentY =
-      event.clientY;
-
-    setDragged(game.id);
-
-    document.body.classList.add(
-      "admin-dragging"
-    );
-
-    const handleMove = (moveEvent) => {
-      moveEvent.preventDefault();
-
-      state.currentY =
-        moveEvent.clientY;
-
-      const deltaY =
-        state.currentY -
-        state.startY;
-
-      if (state.ghost) {
-        state.ghost.style.transform =
-          `translate3d(0, ${deltaY}px, 0)`;
-      }
-
-      const targetId =
-        findTargetId(
-          moveEvent.clientX,
-          moveEvent.clientY
-        );
-
-      if (
-        targetId &&
-        targetId !== game.id
-      ) {
-        setDragOver(targetId);
-      } else {
-        setDragOver(null);
-      }
-    };
-
-    const handleUp = async (
-      upEvent
-    ) => {
-      const targetId =
-        findTargetId(
-          upEvent.clientX,
-          upEvent.clientY
-        );
-
-      clearPointerDrag();
-
-      if (
-        targetId &&
-        targetId !== game.id
-      ) {
-        await reorderGames(
-          game.id,
-          targetId
-        );
-      }
-    };
-
-    window.addEventListener(
-      "pointermove",
-      handleMove,
-      { passive: false }
-    );
-
-    window.addEventListener(
-      "pointerup",
-      handleUp,
-      { once: true }
-    );
-
-    window.addEventListener(
-      "pointercancel",
-      handleUp,
-      { once: true }
-    );
-
-    state.cleanup = () => {
-      window.removeEventListener(
-        "pointermove",
-        handleMove
-      );
-      window.removeEventListener(
-        "pointerup",
-        handleUp
-      );
-      window.removeEventListener(
-        "pointercancel",
-        handleUp
-      );
-    };
   }
 
   async function saveExtensionUrl(
@@ -649,14 +569,19 @@ export default function AdminPanel() {
     setMsg("");
 
     const value =
-      event.currentTarget.extension_url.value.trim();
+      event.currentTarget
+        .extension_url.value.trim();
 
     if (value) {
       try {
-        const url = new URL(value);
+        const url =
+          new URL(value);
 
         if (
-          !["http:", "https:"].includes(
+          ![
+            "http:",
+            "https:",
+          ].includes(
             url.protocol
           )
         ) {
@@ -670,203 +595,35 @@ export default function AdminPanel() {
       }
     }
 
-    const { error } =
-      await supabase
-        .from("site_settings")
-        .upsert({
-          key:
-            "extension_download_url",
-          value,
-        });
+    const {
+      error,
+    } = await supabase
+      .from(
+        "site_settings"
+      )
+      .upsert({
+        key:
+          "extension_download_url",
+        value,
+      });
 
     if (error) {
-      setErr(error.message);
+      setErr(
+        error.message
+      );
       return;
     }
 
-    setExtensionUrl(value);
+    setExtensionUrl(
+      value
+    );
+
     setMsg(
       value
         ? "Ссылка на расширение сохранена."
         : "Ссылка на расширение удалена."
     );
   }
-
-  async function downloadBackup() {
-    try {
-      const {
-        data: settings,
-        error: settingsError,
-      } = await supabase
-        .from("site_settings")
-        .select("*");
-
-      if (settingsError) {
-        throw settingsError;
-      }
-
-      const backup = {
-        format: BACKUP_FORMAT,
-        version: BACKUP_VERSION,
-        exported_at:
-          new Date().toISOString(),
-        games,
-        site_settings:
-          settings || [],
-        note:
-          "JSON сохраняет данные каталога и ссылки на изображения. Файлы изображений физически остаются в Supabase Storage.",
-      };
-
-      const blob =
-        new Blob(
-          [
-            JSON.stringify(
-              backup,
-              null,
-              2
-            ),
-          ],
-          {
-            type:
-              "application/json;charset=utf-8",
-          }
-        );
-
-      const url =
-        URL.createObjectURL(
-          blob
-        );
-
-      const link =
-        document.createElement(
-          "a"
-        );
-
-      link.href = url;
-      link.download =
-        `steam-game-catalog-backup-${new Date()
-          .toISOString()
-          .slice(0, 10)}.json`;
-
-      document.body.appendChild(
-        link
-      );
-
-      link.click();
-      link.remove();
-
-      URL.revokeObjectURL(url);
-
-      setMsg(
-        "Резервная копия скачана."
-      );
-    } catch (error) {
-      setErr(
-        error?.message ||
-          "Не удалось создать backup."
-      );
-    }
-  }
-
-  async function restoreBackup(
-    event
-  ) {
-    const backupFile =
-      event.target.files?.[0];
-
-    event.target.value = "";
-
-    if (!backupFile) {
-      return;
-    }
-
-    try {
-      const text =
-        await backupFile.text();
-
-      const backup =
-        JSON.parse(text);
-
-      if (
-        backup?.format !==
-          BACKUP_FORMAT ||
-        backup?.version !==
-          BACKUP_VERSION ||
-        !Array.isArray(
-          backup.games
-        )
-      ) {
-        throw new Error(
-          "Файл не похож на backup этого каталога."
-        );
-      }
-
-      const approved =
-        confirm(
-          `Восстановить ${backup.games.length} игр из резервной копии?\n\nСуществующие записи с такими же ID будут обновлены.`
-        );
-
-      if (!approved) {
-        return;
-      }
-
-      if (backup.games.length) {
-        const {
-          error: gamesError,
-        } = await supabase
-          .from("games")
-          .upsert(
-            backup.games,
-            {
-              onConflict: "id",
-            }
-          );
-
-        if (gamesError) {
-          throw gamesError;
-        }
-      }
-
-      if (
-        Array.isArray(
-          backup.site_settings
-        ) &&
-        backup.site_settings.length
-      ) {
-        const {
-          error: settingsError,
-        } = await supabase
-          .from("site_settings")
-          .upsert(
-            backup.site_settings,
-            {
-              onConflict: "key",
-            }
-          );
-
-        if (settingsError) {
-          throw settingsError;
-        }
-      }
-
-      await load();
-
-      setMsg(
-        "Резервная копия восстановлена."
-      );
-    } catch (error) {
-      setErr(
-        error?.message ||
-          "Не удалось восстановить backup."
-      );
-    }
-  }
-
-  useEffect(() => {
-    return () => {
-      clearPointerDrag();
-    };
-  }, []);
 
   if (!checked) {
     return (
@@ -889,11 +646,14 @@ export default function AdminPanel() {
               ADMIN
             </p>
 
-            <h1>Вход</h1>
+            <h1>
+              Вход
+            </h1>
 
             <p className="hero-text">
-              Раздел управления доступен
-              только владельцу каталога.
+              Раздел управления
+              доступен только
+              владельцу каталога.
             </p>
           </section>
 
@@ -903,17 +663,16 @@ export default function AdminPanel() {
     );
   }
 
-  const visibleGames =
-    getFilteredGames();
-
   return (
     <>
       <Header
-        email={session.user.email}
+        email={
+          session.user.email
+        }
       />
 
-      <main className="admin-container">
-        <section className="hero admin-hero">
+      <main className="admin-container admin-page">
+        <section className="hero admin-page-hero">
           <p className="eyebrow">
             ADMIN
           </p>
@@ -923,164 +682,89 @@ export default function AdminPanel() {
           </h1>
 
           <p className="hero-text">
-            Добавляй игры, редактируй
-            карточки, ищи их и меняй
-            порядок.
+            Добавляй игры,
+            редактируй карточки и
+            перетаскивай их для
+            изменения порядка.
           </p>
         </section>
 
-        <section className="panel admin-tools">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">
-                TOOLS
-              </p>
+        <section className="panel admin-card">
+          <div className="admin-section-heading">
+            <p className="eyebrow">
+              SETTINGS
+            </p>
 
-              <h2>
-                Инструменты
-              </h2>
-            </div>
+            <h2>
+              Ссылка на расширение
+            </h2>
+
+            <p className="admin-section-description">
+              Укажи адрес актуальной
+              версии расширения. Эта
+              ссылка используется
+              кнопкой «Скачать
+              расширение» на главной.
+            </p>
           </div>
 
-          <div className="tools-grid">
-            <div className="tool-card">
-              <div className="tool-icon">
-                💾
-              </div>
+          <form
+            className="settings-form admin-form-spacing"
+            onSubmit={
+              saveExtensionUrl
+            }
+          >
+            <label>
+              URL расширения
 
-              <div className="tool-copy">
-                <strong>
-                  Резервная копия
-                </strong>
-
-                <span>
-                  Сохранить игры и настройки
-                  в JSON-файл.
-                </span>
-              </div>
-
-              <div className="tool-actions">
-                <button
-                  className="secondary-btn"
-                  type="button"
-                  onClick={
-                    downloadBackup
-                  }
-                >
-                  ↓ Скачать
-                </button>
-
-                <button
-                  className="secondary-btn"
-                  type="button"
-                  onClick={() =>
-                    backupInputRef.current?.click()
-                  }
-                >
-                  ↑ Восстановить
-                </button>
-
-                <input
-                  ref={backupInputRef}
-                  type="file"
-                  accept="application/json,.json"
-                  hidden
-                  onChange={
-                    restoreBackup
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="tool-card">
-              <div className="tool-icon">
-                🧩
-              </div>
-
-              <div className="tool-copy">
-                <strong>
-                  Расширение Steam
-                </strong>
-
-                <span>
-                  Управляй ссылкой на
-                  актуальную версию расширения.
-                </span>
-              </div>
-
-              <form
-                className="extension-settings-form"
-                onSubmit={
-                  saveExtensionUrl
-                }
-              >
-                <input
-                  name="extension_url"
-                  type="url"
-                  defaultValue={
-                    extensionUrl
-                  }
-                  placeholder="https://github.com/..."
-                  aria-label="Ссылка на расширение"
-                />
-
-                <button
-                  className="primary-btn"
-                  type="submit"
-                >
-                  Сохранить
-                </button>
-              </form>
-
-              <span
-                className={`setting-status ${
+              <input
+                name="extension_url"
+                type="url"
+                defaultValue={
                   extensionUrl
-                    ? "active"
-                    : ""
-                }`}
-              >
-                {extensionUrl
-                  ? "● Ссылка активна"
-                  : "○ Ссылка не задана"}
+                }
+                placeholder="https://github.com/..."
+              />
+
+              <span className="hint">
+                Можно менять ссылку
+                в любое время без
+                изменения сайта.
               </span>
+            </label>
+
+            <div className="form-actions">
+              <button
+                className="primary-btn"
+                type="submit"
+              >
+                Сохранить ссылку
+              </button>
             </div>
-          </div>
-
-          {msg && (
-            <p className="message success-text">
-              {msg}
-            </p>
-          )}
-
-          {err && (
-            <p className="message error-text">
-              {err}
-            </p>
-          )}
+          </form>
         </section>
 
-        <section className="panel">
+        <section className="panel admin-card">
+          <div className="admin-section-heading">
+            <p className="eyebrow">
+              {editing
+                ? "EDIT"
+                : "NEW GAME"}
+            </p>
+
+            <h2>
+              {editing
+                ? "Редактировать игру"
+                : "Добавить игру"}
+            </h2>
+          </div>
+
           <form
             id="gameForm"
             onSubmit={save}
+            className="admin-form-spacing"
           >
-            <div className="panel-heading">
-              <div>
-                <p className="eyebrow">
-                  {editing
-                    ? "EDIT"
-                    : "NEW GAME"}
-                </p>
-
-                <h2>
-                  {editing
-                    ? "Редактировать игру"
-                    : "Добавить игру"}
-                </h2>
-              </div>
-            </div>
-
-            <div className="form-grid admin-form-grid">
+            <div className="form-grid">
               <label>
                 Название игры
 
@@ -1118,21 +802,29 @@ export default function AdminPanel() {
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={(event) => {
+                  onChange={(
+                    event
+                  ) => {
                     const selected =
                       event.target.files?.[0] ||
                       null;
 
-                    setFile(selected);
+                    setFile(
+                      selected
+                    );
 
-                    if (selected) {
+                    if (
+                      selected
+                    ) {
                       setPreview(
                         URL.createObjectURL(
                           selected
                         )
                       );
                     } else {
-                      setPreview("");
+                      setPreview(
+                        ""
+                      );
                     }
                   }}
                 />
@@ -1144,14 +836,16 @@ export default function AdminPanel() {
                 {preview && (
                   <img
                     className="preview"
-                    src={preview}
+                    src={
+                      preview
+                    }
                     alt="Предпросмотр"
                   />
                 )}
               </label>
             </div>
 
-            <div className="form-actions">
+            <div className="form-actions admin-form-actions">
               <button
                 className="primary-btn"
                 type="submit"
@@ -1171,12 +865,24 @@ export default function AdminPanel() {
                 </button>
               )}
             </div>
+
+            {msg && (
+              <p className="message success-text">
+                {msg}
+              </p>
+            )}
+
+            {err && (
+              <p className="message error-text">
+                {err}
+              </p>
+            )}
           </form>
         </section>
 
-        <section className="panel collection-panel">
+        <section className="panel admin-card collection-panel">
           <div className="collection-toolbar">
-            <div>
+            <div className="admin-section-heading">
               <p className="eyebrow">
                 COLLECTION
               </p>
@@ -1184,145 +890,124 @@ export default function AdminPanel() {
               <h2>
                 Мои игры
               </h2>
+
+              <p className="admin-section-description">
+                Перетаскивай карточки
+                мышью или используй
+                стандартный drag & drop.
+              </p>
             </div>
 
-            <div className="collection-controls">
-              <label className="admin-search-wrap">
-                <span>⌕</span>
-
-                <input
-                  value={search}
-                  onChange={(
-                    event
-                  ) =>
-                    setSearch(
-                      event.target.value
-                    )
-                  }
-                  placeholder="Поиск игры..."
-                  aria-label="Поиск игры"
-                />
-              </label>
-
-              <span className="admin-number">
-                {visibleGames.length}/
-                {games.length}
-              </span>
-            </div>
+            <span className="admin-number admin-count">
+              {games.length}
+            </span>
           </div>
 
-          {search ? (
-            <p className="list-hint">
-              Поиск включён. Для сортировки
-              очисти поле поиска.
-            </p>
-          ) : (
-            <p className="list-hint">
-              <span className="drag-hint-icon">
-                ⠿
-              </span>{" "}
-              Перетаскивай игры за значок
-              слева — мышью или пальцем.
-            </p>
-          )}
+          <p className="list-hint admin-list-hint">
+            <span className="drag-hint-icon">
+              ⠿
+            </span>
+
+            Перетаскивай игры за
+            значок слева, чтобы менять
+            их порядок.
+          </p>
 
           <div className="admin-list">
-            {!visibleGames.length ? (
-              <div className="empty compact-empty">
-                <div className="empty-icon">
-                  🔎
-                </div>
-
-                <p>
-                  По этому запросу ничего
-                  не найдено.
-                </p>
-              </div>
-            ) : (
-              visibleGames.map(
-                (game, index) => (
-                  <div
-                    key={game.id}
-                    data-admin-game-id={
+            {games.map(
+              (
+                game,
+                index
+              ) => (
+                <div
+                  key={
+                    game.id
+                  }
+                  className={`admin-item ${
+                    dragged ===
+                    game.id
+                      ? "dragging"
+                      : ""
+                  }`}
+                  draggable
+                  onDragStart={() =>
+                    setDragged(
                       game.id
-                    }
-                    className={`admin-item ${
-                      dragged === game.id
-                        ? "dragging"
-                        : ""
-                    } ${
-                      dragOver === game.id
-                        ? "drag-over"
-                        : ""
-                    }`}
+                    )
+                  }
+                  onDragOver={(
+                    event
+                  ) =>
+                    event.preventDefault()
+                  }
+                  onDrop={() =>
+                    drop(
+                      game.id
+                    )
+                  }
+                >
+                  <div
+                    className="drag-handle"
+                    title="Перетащить"
                   >
+                    ⠿
+                  </div>
+
+                  <img
+                    className="admin-thumb"
+                    src={
+                      game.image_url
+                    }
+                    alt={
+                      game.title
+                    }
+                  />
+
+                  <div className="admin-info">
+                    <div className="admin-number">
+                      {index +
+                        1}
+                    </div>
+
+                    <h3>
+                      {
+                        game.title
+                      }
+                    </h3>
+
+                    <p>
+                      {
+                        game.description
+                      }
+                    </p>
+                  </div>
+
+                  <div className="item-actions">
                     <button
-                      className="drag-handle"
+                      className="secondary-btn"
                       type="button"
-                      disabled={Boolean(
-                        search
-                      )}
-                      onPointerDown={(
-                        event
-                      ) =>
-                        beginPointerDrag(
-                          event,
+                      onClick={() =>
+                        start(
                           game
                         )
                       }
-                      title={
-                        search
-                          ? "Очисти поиск, чтобы менять порядок"
-                          : "Перетащить игру"
-                      }
-                      aria-label={`Перетащить ${game.title}`}
                     >
-                      ⠿
+                      Изменить
                     </button>
 
-                    <img
-                      className="admin-thumb"
-                      src={game.image_url}
-                      alt={game.title}
-                    />
-
-                    <div className="admin-info">
-                      <div className="admin-number">
-                        {index + 1}
-                      </div>
-
-                      <h3>
-                        {game.title}
-                      </h3>
-
-                      <p>
-                        {game.description}
-                      </p>
-                    </div>
-
-                    <div className="item-actions">
-                      <button
-                        className="secondary-btn"
-                        type="button"
-                        onClick={() =>
-                          start(game)
-                        }
-                      >
-                        Изменить
-                      </button>
-
-                      <button
-                        className="danger-btn"
-                        type="button"
-                        onClick={() =>
-                          del(game)
-                        }
-                      >
-                        Удалить
-                      </button>
-                    </div>
+                    <button
+                      className="danger-btn"
+                      type="button"
+                      onClick={() =>
+                        del(
+                          game
+                        )
+                      }
+                    >
+                      Удалить
+                    </button>
                   </div>
-                )
+                </div>
               )
             )}
           </div>
@@ -1333,19 +1018,29 @@ export default function AdminPanel() {
 }
 
 function Login() {
-  const [email, setEmail] =
-    useState("");
+  const [
+    email,
+    setEmail,
+  ] = useState("");
 
-  const [password, setPassword] =
-    useState("");
+  const [
+    password,
+    setPassword,
+  ] = useState("");
 
-  const [error, setError] =
-    useState("");
+  const [
+    error,
+    setError,
+  ] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  async function submit(event) {
+  async function submit(
+    event
+  ) {
     event.preventDefault();
 
     setLoading(true);
@@ -1353,12 +1048,13 @@ function Login() {
 
     const {
       error: loginError,
-    } = await supabase.auth.signInWithPassword(
-      {
-        email,
-        password,
-      }
-    );
+    } =
+      await supabase.auth.signInWithPassword(
+        {
+          email,
+          password,
+        }
+      );
 
     if (loginError) {
       setError(
@@ -1371,7 +1067,9 @@ function Login() {
 
   return (
     <section className="panel login">
-      <form onSubmit={submit}>
+      <form
+        onSubmit={submit}
+      >
         <div
           className="form-grid"
           style={{
@@ -1385,9 +1083,12 @@ function Login() {
             <input
               type="email"
               value={email}
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 setEmail(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               required
@@ -1400,9 +1101,12 @@ function Login() {
             <input
               type="password"
               value={password}
-              onChange={(event) =>
+              onChange={(
+                event
+              ) =>
                 setPassword(
-                  event.target.value
+                  event.target
+                    .value
                 )
               }
               required
