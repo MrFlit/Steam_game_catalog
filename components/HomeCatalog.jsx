@@ -1,10 +1,12 @@
- "use client";
+"use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
 const DEFAULT_EXTENSION_URL = "#";
+const VIEW_KEY = "steam-game-catalog.view-mode";
+const SNAPSHOT_KEY = "steam-game-catalog.offline-games";
 
 function Header({ extensionUrl }) {
   return (
@@ -37,18 +39,42 @@ function Header({ extensionUrl }) {
   );
 }
 
+const modes = [
+  { id: "carousel", icon: "◈", label: "Карусель" },
+  { id: "grid", icon: "▦", label: "Сетка" },
+  { id: "list", icon: "☰", label: "Список" },
+];
+
 export default function HomeCatalog() {
   const [games, setGames] = useState([]);
   const [selected, setSelected] = useState(0);
   const [extensionUrl, setExtensionUrl] = useState("");
+  const [viewMode, setViewMode] = useState("carousel");
   const [loading, setLoading] = useState(true);
+  const [offlineMode, setOfflineMode] = useState(false);
   const [error, setError] = useState("");
 
   const carouselRef = useRef(null);
   const settleTimerRef = useRef(null);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(VIEW_KEY);
+      if (saved === "carousel" || saved === "grid" || saved === "list") {
+        setViewMode(saved);
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(VIEW_KEY, viewMode);
+    } catch {}
+  }, [viewMode]);
+
   async function load() {
     setLoading(true);
+    setError("");
 
     const [{ data: gamesData, error: gamesError }, { data: settingData }] =
       await Promise.all([
@@ -57,7 +83,6 @@ export default function HomeCatalog() {
           .select("*")
           .order("sort_order", { ascending: true })
           .order("created_at", { ascending: true }),
-
         supabase
           .from("site_settings")
           .select("value")
@@ -66,10 +91,29 @@ export default function HomeCatalog() {
       ]);
 
     if (gamesError) {
-      setError(gamesError.message);
+      try {
+        const cached = JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || "[]");
+        if (Array.isArray(cached) && cached.length) {
+          setGames(cached);
+          setSelected((current) =>
+            Math.min(current, Math.max(cached.length - 1, 0))
+          );
+          setOfflineMode(true);
+          setError("");
+        } else {
+          setError(gamesError.message);
+        }
+      } catch {
+        setError(gamesError.message);
+      }
     } else {
       const nextGames = gamesData || [];
       setGames(nextGames);
+      setOfflineMode(false);
+
+      try {
+        localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(nextGames));
+      } catch {}
 
       setSelected((current) =>
         Math.min(current, Math.max(nextGames.length - 1, 0))
@@ -93,27 +137,23 @@ export default function HomeCatalog() {
   const getNearestCardIndex = useCallback(() => {
     const carousel = carouselRef.current;
 
-    if (!carousel) {
-      return 0;
-    }
+    if (!carousel) return 0;
 
     const cards = Array.from(
       carousel.querySelectorAll("[data-game-index]")
     );
 
-    if (!cards.length) {
-      return 0;
-    }
+    if (!cards.length) return 0;
 
-    const carouselRect = carousel.getBoundingClientRect();
-    const center = carouselRect.left + carouselRect.width / 2;
+    const rect = carousel.getBoundingClientRect();
+    const center = rect.left + rect.width / 2;
 
     let nearestIndex = 0;
     let nearestDistance = Infinity;
 
     cards.forEach((card) => {
-      const rect = card.getBoundingClientRect();
-      const cardCenter = rect.left + rect.width / 2;
+      const cardRect = card.getBoundingClientRect();
+      const cardCenter = cardRect.left + cardRect.width / 2;
       const distance = Math.abs(cardCenter - center);
 
       if (distance < nearestDistance) {
@@ -126,11 +166,10 @@ export default function HomeCatalog() {
   }, []);
 
   useEffect(() => {
-    const carousel = carouselRef.current;
+    if (viewMode !== "carousel") return;
 
-    if (!carousel) {
-      return;
-    }
+    const carousel = carouselRef.current;
+    if (!carousel) return;
 
     const handleScroll = () => {
       if (settleTimerRef.current) {
@@ -139,65 +178,54 @@ export default function HomeCatalog() {
 
       settleTimerRef.current = setTimeout(() => {
         setSelected(getNearestCardIndex());
-      }, 110);
+      }, 120);
     };
 
-    carousel.addEventListener("scroll", handleScroll, {
-      passive: true,
-    });
+    carousel.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
       carousel.removeEventListener("scroll", handleScroll);
-
       if (settleTimerRef.current) {
         clearTimeout(settleTimerRef.current);
       }
     };
-  }, [games, getNearestCardIndex]);
+  }, [games, getNearestCardIndex, viewMode]);
 
   const scrollToGame = useCallback(
     (index, behavior = "smooth") => {
-      if (!games.length) {
+      if (!games.length) return;
+
+      const nextIndex = (index + games.length) % games.length;
+      setSelected(nextIndex);
+
+      if (viewMode !== "carousel") {
         return;
       }
-
-      const nextIndex =
-        (index + games.length) % games.length;
 
       const carousel = carouselRef.current;
-
-      if (!carousel) {
-        return;
-      }
+      if (!carousel) return;
 
       const card = carousel.querySelector(
         `[data-game-index="${nextIndex}"]`
       );
 
-      if (!card) {
-        return;
-      }
+      if (!card) return;
 
       const left =
         card.offsetLeft -
         (carousel.clientWidth - card.offsetWidth) / 2;
-
-      setSelected(nextIndex);
 
       carousel.scrollTo({
         left: Math.max(0, left),
         behavior,
       });
     },
-    [games.length]
+    [games.length, viewMode]
   );
 
   const move = useCallback(
     (delta) => {
-      if (!games.length) {
-        return;
-      }
-
+      if (!games.length) return;
       scrollToGame(selected + delta);
     },
     [games.length, scrollToGame, selected]
@@ -205,9 +233,7 @@ export default function HomeCatalog() {
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (!games.length) {
-        return;
-      }
+      if (!games.length) return;
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
@@ -222,10 +248,19 @@ export default function HomeCatalog() {
 
     window.addEventListener("keydown", handleKeyDown);
 
-    return () => {
+    return () =>
       window.removeEventListener("keydown", handleKeyDown);
-    };
   }, [games.length, move]);
+
+  function chooseMode(mode) {
+    setViewMode(mode);
+
+    if (mode === "carousel") {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => scrollToGame(selected, "auto"));
+      });
+    }
+  }
 
   const game = games[selected];
 
@@ -240,96 +275,149 @@ export default function HomeCatalog() {
       <main className="container">
         <section className="hero">
           <p className="eyebrow">STEAM COLLECTION</p>
-
           <h1>Игры, которые стоит попробовать</h1>
-
           <p className="hero-text">
-            Выбирай игру в центре экрана и переходи прямо на её
-            страницу в Steam.
+            Выбирай игру в центре экрана и переходи прямо на её страницу в
+            Steam.
           </p>
-
+          {offlineMode && (
+            <div className="offline-badge">Офлайн-копия каталога</div>
+          )}
           <div className="hero-line" />
         </section>
 
-        <section className="carousel-section">
-          <button
-            className="nav-arrow"
-            onClick={() => move(-1)}
-            aria-label="Предыдущая игра"
-            type="button"
-          >
-            ‹
-          </button>
+        <div className="view-switcher" role="tablist" aria-label="Режим отображения">
+          {modes.map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              role="tab"
+              aria-selected={viewMode === mode.id}
+              className={`view-mode-btn ${
+                viewMode === mode.id ? "active" : ""
+              }`}
+              onClick={() => chooseMode(mode.id)}
+            >
+              <span>{mode.icon}</span>
+              {mode.label}
+            </button>
+          ))}
+        </div>
 
-          <div className="carousel-shell">
-            <div className="carousel" ref={carouselRef}>
-              <div className="carousel-edge" aria-hidden="true" />
+        {viewMode === "carousel" ? (
+          <section className="carousel-section">
+            <button
+              className="nav-arrow"
+              onClick={() => move(-1)}
+              aria-label="Предыдущая игра"
+              type="button"
+            >
+              ‹
+            </button>
 
-              {games.map((item, index) => (
-                <article
-                  key={item.id}
-                  data-game-index={index}
-                  className={`game-card ${
-                    index === selected ? "active" : ""
-                  }`}
-                  onClick={() => scrollToGame(index)}
-                >
-                  <div className="card-image-wrap">
-                    <img
-                      className="card-image"
-                      src={item.image_url}
-                      alt={item.title}
-                    />
+            <div className="carousel-shell">
+              <div className="carousel" ref={carouselRef}>
+                <div className="carousel-edge" aria-hidden="true" />
 
-                    <div className="card-shine" />
-                  </div>
-
-                  <div className="card-title">
-                    {item.title}
-                  </div>
-                </article>
-              ))}
-
-              <div className="carousel-edge" aria-hidden="true" />
-            </div>
-
-            {games.length > 1 && (
-              <nav
-                className="carousel-dots"
-                aria-label="Навигация по играм"
-              >
                 {games.map((item, index) => (
-                  <button
+                  <article
                     key={item.id}
-                    type="button"
-                    className={`carousel-dot ${
+                    data-game-index={index}
+                    className={`game-card ${
                       index === selected ? "active" : ""
                     }`}
-                    aria-label={`Открыть ${item.title}`}
-                    aria-current={
-                      index === selected
-                        ? "true"
-                        : undefined
-                    }
-                    title={item.title}
                     onClick={() => scrollToGame(index)}
                   >
-                    <span />
-                  </button>
+                    <div className="card-image-wrap">
+                      <img
+                        className="card-image"
+                        src={item.image_url}
+                        alt={item.title}
+                      />
+                      <div className="card-shine" />
+                    </div>
+                    <div className="card-title">{item.title}</div>
+                  </article>
                 ))}
-              </nav>
-            )}
-          </div>
 
-          <button
-            className="nav-arrow"
-            onClick={() => move(1)}
-            aria-label="Следующая игра"
-            type="button"
-          >
-            ›
-          </button>
-        </section>
+                <div className="carousel-edge" aria-hidden="true" />
+              </div>
+
+              {games.length > 1 && (
+                <nav
+                  className="carousel-dots"
+                  aria-label="Навигация по играм"
+                >
+                  {games.map((item, index) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className={`carousel-dot ${
+                        index === selected ? "active" : ""
+                      }`}
+                      aria-label={`Открыть ${item.title}`}
+                      aria-current={
+                        index === selected ? "true" : undefined
+                      }
+                      title={item.title}
+                      onClick={() => scrollToGame(index)}
+                    >
+                      <span />
+                    </button>
+                  ))}
+                </nav>
+              )}
+            </div>
+
+            <button
+              className="nav-arrow"
+              onClick={() => move(1)}
+              aria-label="Следующая игра"
+              type="button"
+            >
+              ›
+            </button>
+          </section>
+        ) : viewMode === "grid" ? (
+          <section className="game-grid">
+            {games.map((item, index) => (
+              <article
+                key={item.id}
+                className={`grid-game-card ${
+                  index === selected ? "active" : ""
+                }`}
+                onClick={() => setSelected(index)}
+              >
+                <div className="card-image-wrap">
+                  <img
+                    className="card-image"
+                    src={item.image_url}
+                    alt={item.title}
+                  />
+                  <div className="card-shine" />
+                </div>
+                <div className="card-title">{item.title}</div>
+              </article>
+            ))}
+          </section>
+        ) : (
+          <section className="game-list">
+            {games.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                className={`game-list-item ${
+                  index === selected ? "active" : ""
+                }`}
+                onClick={() => setSelected(index)}
+              >
+                <img src={item.image_url} alt="" />
+                <span>{item.title}</span>
+                <span className="list-arrow">›</span>
+              </button>
+            ))}
+          </section>
+        )}
 
         {loading ? (
           <section className="details">
@@ -348,16 +436,12 @@ export default function HomeCatalog() {
           <section className="details">
             <div className="empty">
               <div className="empty-icon">🎮</div>
-
               <h2>Пока нет игр</h2>
-
-              <p>
-                Открой «Управление» и добавь первую игру.
-              </p>
+              <p>Открой «Управление» и добавь первую игру.</p>
             </div>
           </section>
         ) : (
-          <section className="details">
+          <section className="details detail-reveal" key={game.id}>
             <div className="detail-wrap">
               <div className="detail-image-wrap">
                 <img
@@ -365,20 +449,13 @@ export default function HomeCatalog() {
                   src={game.image_url}
                   alt={game.title}
                 />
-
                 <div className="detail-image-glow" />
               </div>
 
               <div className="detail-content">
-                <p className="eyebrow">
-                  ИЗБРАННАЯ ИГРА
-                </p>
-
+                <p className="eyebrow">ИЗБРАННАЯ ИГРА</p>
                 <h2>{game.title}</h2>
-
-                <div className="description">
-                  {game.description}
-                </div>
+                <div className="description">{game.description}</div>
 
                 <a
                   className="primary-btn"
@@ -401,23 +478,16 @@ export default function HomeCatalog() {
 
         {extensionUrl && (
           <section className="extension-banner">
-            <div className="extension-banner-icon">
-              🧩
-            </div>
+            <div className="extension-banner-icon">🧩</div>
 
             <div>
-              <p className="eyebrow">
-                STEAM EXTENSION
-              </p>
-
+              <p className="eyebrow">STEAM EXTENSION</p>
               <h3>
-                Добавляй игры в каталог прямо со страницы
-                Steam
+                Добавляй игры в каталог прямо со страницы Steam
               </h3>
-
               <p>
-                Открой игру в Steam, нажми «Добавить в
-                каталог» — и она появится здесь автоматически.
+                Открой игру в Steam, нажми «Добавить в каталог» — и она
+                появится здесь автоматически.
               </p>
             </div>
 
@@ -434,13 +504,9 @@ export default function HomeCatalog() {
 
         <div className="footer">
           <span>
-            Copyright © 2026-2035 Flit Gaming Ltd. All
-            rights reserved.
+            Copyright © 2026-2035 Flit Gaming Ltd. All rights reserved.
           </span>
-
-          <span>
-            {games.length ? `${games.length} игр` : ""}
-          </span>
+          <span>{games.length ? `${games.length} игр` : ""}</span>
         </div>
       </main>
     </>
