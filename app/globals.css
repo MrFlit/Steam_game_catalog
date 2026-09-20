@@ -148,7 +148,8 @@ textarea{resize:vertical;min-height:150px;line-height:1.6}
 }
 
 
-/* === Dots navigation for the game carousel === */
+
+/* === Carousel: fixed centering + modern dot navigation === */
 
 .carousel-shell{
   min-width:0;
@@ -156,24 +157,47 @@ textarea{resize:vertical;min-height:150px;line-height:1.6}
 }
 
 .carousel{
+  --card-width:208px;
   scrollbar-width:none;
   -ms-overflow-style:none;
+  overscroll-behavior-x:contain;
+  scroll-behavior:smooth;
+  scroll-snap-type:x mandatory;
 }
 
 .carousel::-webkit-scrollbar{
   display:none;
 }
 
+.carousel-edge{
+  flex:0 0 max(8px, calc((100% - var(--card-width)) / 2));
+  height:1px;
+  scroll-snap-align:none;
+}
+
+.game-card{
+  scroll-snap-align:center;
+  scroll-snap-stop:always;
+}
+
 .carousel-dots{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:9px;
+  gap:8px;
   min-height:26px;
-  margin:10px auto 0;
-  padding:4px 10px;
+  margin:9px auto 0;
+  padding:5px 12px;
+  max-width:100%;
   overflow-x:auto;
+  overscroll-behavior-x:contain;
   scrollbar-width:none;
+  border:1px solid rgba(102,192,244,.08);
+  border-radius:999px;
+  background:rgba(7,16,24,.40);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 7px 24px rgba(0,0,0,.12);
 }
 
 .carousel-dots::-webkit-scrollbar{
@@ -181,86 +205,86 @@ textarea{resize:vertical;min-height:150px;line-height:1.6}
 }
 
 .carousel-dot{
-  position:relative;
-  width:14px;
-  height:14px;
+  appearance:none;
+  -webkit-appearance:none;
+  display:grid;
+  place-items:center;
+  width:18px;
+  height:18px;
   padding:0;
+  margin:0;
   border:0;
+  outline:0;
   border-radius:50%;
-  background:transparent;
+  background:transparent !important;
+  box-shadow:none !important;
   cursor:pointer;
   flex:0 0 auto;
-  outline:none;
 }
 
 .carousel-dot span{
-  position:absolute;
-  left:50%;
-  top:50%;
+  display:block;
   width:7px;
   height:7px;
-  transform:translate(-50%,-50%);
   border-radius:50%;
-  background:rgba(143,164,179,.52);
-  box-shadow:0 0 0 1px rgba(102,192,244,.04);
+  background:rgba(143,164,179,.55);
+  box-shadow:
+    0 0 0 1px rgba(102,192,244,.03);
   transition:
     width .22s ease,
     height .22s ease,
     background .22s ease,
-    box-shadow .22s ease,
-    transform .22s ease;
+    box-shadow .22s ease;
 }
 
 .carousel-dot:hover span{
   width:9px;
   height:9px;
-  background:rgba(167,208,234,.88);
+  background:rgba(179,218,238,.86);
   box-shadow:
-    0 0 10px rgba(102,192,244,.24);
+    0 0 12px rgba(102,192,244,.22);
 }
 
 .carousel-dot.active span{
-  width:11px;
-  height:11px;
+  width:10px;
+  height:10px;
   background:var(--accent2);
   box-shadow:
     0 0 0 3px rgba(26,159,255,.10),
-    0 0 13px rgba(26,159,255,.48),
-    0 0 24px rgba(102,192,244,.20);
-  animation:carouselDotPulse 2.4s ease-in-out infinite;
+    0 0 14px rgba(26,159,255,.55),
+    0 0 26px rgba(102,192,244,.18);
 }
 
 .carousel-dot:focus-visible span{
   box-shadow:
-    0 0 0 3px rgba(102,192,244,.20),
-    0 0 12px rgba(26,159,255,.35);
-}
-
-@keyframes carouselDotPulse{
-  0%,100%{
-    box-shadow:
-      0 0 0 3px rgba(26,159,255,.08),
-      0 0 13px rgba(26,159,255,.42),
-      0 0 24px rgba(102,192,244,.18);
-  }
-  50%{
-    box-shadow:
-      0 0 0 4px rgba(26,159,255,.13),
-      0 0 18px rgba(26,159,255,.58),
-      0 0 30px rgba(102,192,244,.24);
-  }
+    0 0 0 4px rgba(102,192,255,.16),
+    0 0 14px rgba(26,159,255,.35);
 }
 
 @media(max-width:760px){
+  .carousel{
+    --card-width:170px;
+  }
+
   .carousel-dots{
-    gap:8px;
-    margin-top:9px;
-    padding-left:7px;
-    padding-right:7px;
+    gap:7px;
+    margin-top:8px;
+    padding-left:10px;
+    padding-right:10px;
   }
 
   .carousel-dot{
-    width:13px;
-    height:13px;
+    width:17px;
+    height:17px;
+  }
+
+  .carousel-dot span{
+    width:6px;
+    height:6px;
+  }
+
+  .carousel-dot.active span{
+    width:9px;
+    height:9px;
   }
 }
