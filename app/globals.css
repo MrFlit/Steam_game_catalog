@@ -146,3 +146,95 @@ textarea{resize:vertical;min-height:150px;line-height:1.6}
  .carousel-section{gap:7px}.nav-arrow{width:40px;height:40px;font-size:28px}
  .footer{flex-direction:column;gap:6px}
 }
+
+/* Modern carousel scrollbar replacement */
+.carousel-shell{
+  min-width:0;
+  flex:1 1 auto;
+}
+
+.carousel{
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  overscroll-behavior-x:contain;
+  scroll-behavior:smooth;
+}
+
+.carousel::-webkit-scrollbar{
+  display:none;
+}
+
+.carousel-slider{
+  position:relative;
+  height:18px;
+  margin:7px 8px 0;
+  padding:5px 0;
+  cursor:pointer;
+  touch-action:none;
+  user-select:none;
+  outline:none;
+}
+
+.carousel-slider:focus-visible .carousel-slider-track{
+  box-shadow:0 0 0 3px rgba(102,192,244,.12);
+}
+
+.carousel-slider-track{
+  position:relative;
+  width:100%;
+  height:8px;
+  border:1px solid rgba(102,192,244,.12);
+  border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.015)),rgba(4,11,17,.78);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.42),0 5px 18px rgba(0,0,0,.16);
+}
+
+.carousel-slider-fill{
+  position:absolute;
+  left:0;
+  top:0;
+  bottom:0;
+  min-width:8px;
+  border-radius:999px;
+  background:linear-gradient(90deg,rgba(26,159,255,.58),rgba(102,192,244,.96));
+  box-shadow:0 0 12px rgba(26,159,255,.28),0 0 26px rgba(102,192,244,.10);
+  pointer-events:none;
+}
+
+.carousel-slider-thumb{
+  position:absolute;
+  top:50%;
+  width:18px;
+  height:18px;
+  transform:translate(-50%,-50%);
+  border:1px solid rgba(188,229,250,.62);
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#d8f2ff 0 10%,#72c8f4 22%,#1f91d5 60%,#0c5682 100%);
+  box-shadow:0 0 0 4px rgba(26,159,255,.10),0 0 18px rgba(26,159,255,.34),0 7px 18px rgba(0,0,0,.38);
+  transition:left .12s linear,transform .15s ease;
+  z-index:2;
+  pointer-events:none;
+}
+
+.carousel-slider:hover .carousel-slider-thumb{
+  transform:translate(-50%,-50%) scale(1.12);
+}
+
+.carousel-slider:active .carousel-slider-thumb{
+  transform:translate(-50%,-50%) scale(1.18);
+}
+
+.carousel-slider-thumb span{
+  position:absolute;
+  inset:4px;
+  border-radius:50%;
+  background:rgba(255,255,255,.52);
+}
+
+@media(max-width:760px){
+  .carousel-slider{
+    margin-left:3px;
+    margin-right:3px;
+  }
+}
+
