@@ -146,3 +146,145 @@ textarea{resize:vertical;min-height:150px;line-height:1.6}
  .carousel-section{gap:7px}.nav-arrow{width:40px;height:40px;font-size:28px}
  .footer{flex-direction:column;gap:6px}
 }
+
+
+
+/* === Carousel: fixed centering + modern dot navigation === */
+
+.carousel-shell{
+  min-width:0;
+  flex:1 1 auto;
+}
+
+.carousel{
+  --card-width:208px;
+  scrollbar-width:none;
+  -ms-overflow-style:none;
+  overscroll-behavior-x:contain;
+  scroll-behavior:smooth;
+  scroll-snap-type:x mandatory;
+}
+
+.carousel::-webkit-scrollbar{
+  display:none;
+}
+
+.carousel-edge{
+  flex:0 0 max(8px, calc((100% - var(--card-width)) / 2));
+  height:1px;
+  scroll-snap-align:none;
+}
+
+.game-card{
+  scroll-snap-align:center;
+  scroll-snap-stop:always;
+}
+
+.carousel-dots{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:26px;
+  margin:9px auto 0;
+  padding:5px 12px;
+  max-width:100%;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+  scrollbar-width:none;
+  border:1px solid rgba(102,192,244,.08);
+  border-radius:999px;
+  background:rgba(7,16,24,.40);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025),
+    0 7px 24px rgba(0,0,0,.12);
+}
+
+.carousel-dots::-webkit-scrollbar{
+  display:none;
+}
+
+.carousel-dot{
+  appearance:none;
+  -webkit-appearance:none;
+  display:grid;
+  place-items:center;
+  width:18px;
+  height:18px;
+  padding:0;
+  margin:0;
+  border:0;
+  outline:0;
+  border-radius:50%;
+  background:transparent !important;
+  box-shadow:none !important;
+  cursor:pointer;
+  flex:0 0 auto;
+}
+
+.carousel-dot span{
+  display:block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:rgba(143,164,179,.55);
+  box-shadow:
+    0 0 0 1px rgba(102,192,244,.03);
+  transition:
+    width .22s ease,
+    height .22s ease,
+    background .22s ease,
+    box-shadow .22s ease;
+}
+
+.carousel-dot:hover span{
+  width:9px;
+  height:9px;
+  background:rgba(179,218,238,.86);
+  box-shadow:
+    0 0 12px rgba(102,192,244,.22);
+}
+
+.carousel-dot.active span{
+  width:10px;
+  height:10px;
+  background:var(--accent2);
+  box-shadow:
+    0 0 0 3px rgba(26,159,255,.10),
+    0 0 14px rgba(26,159,255,.55),
+    0 0 26px rgba(102,192,244,.18);
+}
+
+.carousel-dot:focus-visible span{
+  box-shadow:
+    0 0 0 4px rgba(102,192,255,.16),
+    0 0 14px rgba(26,159,255,.35);
+}
+
+@media(max-width:760px){
+  .carousel{
+    --card-width:170px;
+  }
+
+  .carousel-dots{
+    gap:7px;
+    margin-top:8px;
+    padding-left:10px;
+    padding-right:10px;
+  }
+
+  .carousel-dot{
+    width:17px;
+    height:17px;
+  }
+
+  .carousel-dot span{
+    width:6px;
+    height:6px;
+  }
+
+  .carousel-dot.active span{
+    width:9px;
+    height:9px;
+  }
+}
