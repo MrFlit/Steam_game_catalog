@@ -186,7 +186,7 @@ export default function HomeCatalog() {
         )}
 
         <div className="footer">
-          <span>Каталог работает через Supabase</span>
+          <span>Copyright © 2026-2035 Flit Gaming Ltd. All rights reserved.</span>
           <span>{games.length ? `${games.length} игр` : ""}</span>
         </div>
       </main>
