@@ -288,3 +288,311 @@ textarea{resize:vertical;min-height:150px;line-height:1.6}
     height:9px;
   }
 }
+
+/* =========================================================
+   Header + Admin spacing fix — based on current main branch
+   Append this block to the END of app/globals.css
+   ========================================================= */
+
+.site-header .header-action-icon{
+  font-size:13px;
+}
+
+.site-header .admin-link{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+
+/* Header on the admin page */
+.admin-header-actions{
+  gap:10px;
+}
+
+.admin-header-actions .secondary-btn,
+.admin-header-actions .admin-link{
+  min-height:42px;
+}
+
+/* Admin page rhythm */
+.admin-page{
+  padding-top:64px;
+  padding-bottom:70px;
+}
+
+.admin-page-hero{
+  margin-bottom:38px;
+}
+
+.admin-page-hero .hero-text{
+  max-width:650px;
+  margin-left:auto;
+  margin-right:auto;
+}
+
+.admin-card{
+  margin-top:22px;
+  padding:30px;
+}
+
+.admin-card + .admin-card{
+  margin-top:22px;
+}
+
+.admin-section-heading{
+  margin:0 0 22px;
+}
+
+.admin-section-heading .eyebrow{
+  margin-bottom:7px;
+}
+
+.admin-section-heading h2{
+  margin:0;
+}
+
+.admin-section-description{
+  max-width:700px;
+  margin:8px 0 0;
+  color:#78909f;
+  font-size:12px;
+  line-height:1.6;
+}
+
+.admin-form-spacing{
+  margin-top:2px;
+}
+
+.admin-form-spacing .form-grid{
+  row-gap:22px;
+  column-gap:18px;
+}
+
+.admin-form-spacing label{
+  gap:9px;
+}
+
+.admin-form-spacing textarea{
+  min-height:170px;
+}
+
+.admin-form-actions{
+  margin-top:24px;
+}
+
+.admin-list-hint{
+  margin-top:0;
+  margin-bottom:18px;
+  padding:11px 13px;
+  border:1px solid rgba(102,192,244,.08);
+  border-radius:10px;
+  background:rgba(255,255,255,.018);
+}
+
+.collection-panel{
+  padding-bottom:30px;
+}
+
+.collection-toolbar{
+  align-items:flex-start;
+}
+
+.admin-count{
+  margin:0;
+  min-width:34px;
+  min-height:28px;
+  height:28px;
+}
+
+.admin-list{
+  gap:10px;
+}
+
+.admin-item{
+  min-height:82px;
+  padding:11px 12px;
+  border-radius:14px;
+}
+
+.admin-item + .admin-item{
+  margin-top:0;
+}
+
+.admin-info{
+  padding:2px 0;
+}
+
+.admin-info h3{
+  margin:3px 0 5px;
+}
+
+.admin-info p{
+  line-height:1.45;
+}
+
+.drag-handle{
+  border-radius:8px;
+  transition:
+    color .2s ease,
+    background .2s ease,
+    transform .2s ease;
+}
+
+.drag-handle:hover{
+  color:#b6dced;
+  background:rgba(102,192,244,.08);
+  transform:scale(1.04);
+}
+
+.settings-form .form-actions{
+  margin-top:18px;
+}
+
+.settings-form .hint{
+  margin-top:-2px;
+}
+
+/* Mobile header */
+@media(max-width:760px){
+  .admin-page{
+    padding-top:38px;
+    padding-bottom:45px;
+  }
+
+  .admin-page-hero{
+    margin-bottom:28px;
+  }
+
+  .admin-card{
+    margin-top:16px;
+    padding:20px 16px;
+  }
+
+  .admin-card + .admin-card{
+    margin-top:16px;
+  }
+
+  .admin-section-heading{
+    margin-bottom:18px;
+  }
+
+  .collection-toolbar{
+    gap:12px;
+  }
+
+  .collection-toolbar .admin-count{
+    align-self:flex-start;
+  }
+
+  .admin-form-spacing .form-grid{
+    row-gap:16px;
+  }
+
+  .admin-form-actions{
+    margin-top:18px;
+  }
+
+  .admin-list{
+    gap:8px;
+  }
+
+  .admin-item{
+    min-height:0;
+    padding:10px;
+  }
+}
+
+@media(max-width:560px){
+  .site-header{
+    padding:10px 12px;
+    gap:9px;
+  }
+
+  .site-header .top-actions{
+    margin-left:auto;
+    gap:5px;
+  }
+
+  .site-header .extension-link,
+  .site-header .admin-link{
+    min-height:38px;
+    padding:8px 9px;
+    font-size:11px;
+    white-space:nowrap;
+  }
+
+  .site-header .admin-link{
+    max-width:124px;
+  }
+
+  .admin-header-actions .secondary-btn,
+  .admin-header-actions .admin-link{
+    min-height:38px;
+  }
+
+  .admin-header-actions .secondary-btn{
+    padding:8px 10px;
+  }
+
+  .admin-page{
+    width:calc(100% - 16px);
+    padding-top:30px;
+  }
+
+  .admin-page-hero h1{
+    font-size:34px;
+  }
+
+  .admin-card{
+    padding:18px 13px;
+    border-radius:16px;
+  }
+
+  .admin-section-heading h2{
+    font-size:21px;
+  }
+
+  .admin-section-description{
+    font-size:11px;
+  }
+
+  .admin-item{
+    grid-template-columns:28px 70px minmax(0,1fr);
+    align-items:center;
+  }
+
+  .admin-thumb{
+    width:70px;
+    aspect-ratio:16/9;
+  }
+
+  .admin-info{
+    min-width:0;
+  }
+
+  .admin-info h3{
+    font-size:13px;
+  }
+
+  .admin-info p{
+    font-size:10px;
+  }
+
+  .item-actions{
+    grid-column:1/-1;
+    justify-content:flex-end;
+    padding-top:3px;
+  }
+
+  .item-actions .secondary-btn,
+  .item-actions .danger-btn{
+    min-height:38px;
+    padding:0 11px;
+  }
+
+  .admin-list-hint{
+    font-size:11px;
+    line-height:1.5;
+    padding:10px 11px;
+  }
+}
