@@ -3,18 +3,25 @@
 import { useEffect, useState } from "react";
 
 export default function PwaInstallPrompt() {
-  const [installEvent, setInstallEvent] = useState(null);
-  const [visible, setVisible] = useState(false);
+  const [installEvent, setInstallEvent] =
+    useState(null);
+
+  const [visible, setVisible] =
+    useState(false);
 
   useEffect(() => {
-    const alreadyDismissed =
-      sessionStorage.getItem("steam-catalog-pwa-dismissed") === "1";
+    const dismissed =
+      sessionStorage.getItem(
+        "steam-catalog-pwa-dismissed"
+      ) === "1";
 
-    function handleBeforeInstallPrompt(event) {
+    function handleBeforeInstallPrompt(
+      event
+    ) {
       event.preventDefault();
       setInstallEvent(event);
 
-      if (!alreadyDismissed) {
+      if (!dismissed) {
         setVisible(true);
       }
     }
@@ -28,9 +35,16 @@ export default function PwaInstallPrompt() {
       "beforeinstallprompt",
       handleBeforeInstallPrompt
     );
-    window.addEventListener("appinstalled", handleAppInstalled);
 
-    if ("serviceWorker" in navigator) {
+    window.addEventListener(
+      "appinstalled",
+      handleAppInstalled
+    );
+
+    if (
+      "serviceWorker" in
+      navigator
+    ) {
       navigator.serviceWorker
         .register("/sw.js")
         .catch(() => {});
@@ -41,16 +55,19 @@ export default function PwaInstallPrompt() {
         "beforeinstallprompt",
         handleBeforeInstallPrompt
       );
-      window.removeEventListener("appinstalled", handleAppInstalled);
+
+      window.removeEventListener(
+        "appinstalled",
+        handleAppInstalled
+      );
     };
   }, []);
 
   async function install() {
     if (!installEvent) return;
 
-    installEvent.prompt();
-
     try {
+      installEvent.prompt();
       await installEvent.userChoice;
     } catch {}
 
@@ -59,7 +76,11 @@ export default function PwaInstallPrompt() {
   }
 
   function dismiss() {
-    sessionStorage.setItem("steam-catalog-pwa-dismissed", "1");
+    sessionStorage.setItem(
+      "steam-catalog-pwa-dismissed",
+      "1"
+    );
+
     setVisible(false);
   }
 
@@ -69,11 +90,18 @@ export default function PwaInstallPrompt() {
 
   return (
     <div className="pwa-install-prompt">
-      <div className="pwa-install-icon">S</div>
+      <div className="pwa-install-icon">
+        S
+      </div>
 
       <div className="pwa-install-copy">
-        <strong>Game Catalog</strong>
-        <span>Установить каталог как приложение</span>
+        <strong>
+          Game Catalog
+        </strong>
+
+        <span>
+          Установить каталог как приложение
+        </span>
       </div>
 
       <button
