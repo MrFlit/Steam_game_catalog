@@ -12,7 +12,9 @@ export const viewport = {
   colorScheme: "dark",
 };
 
-export default function RootLayout({ children }) {
+export default function RootLayout({
+  children,
+}) {
   return (
     <html lang="ru">
       <body>
