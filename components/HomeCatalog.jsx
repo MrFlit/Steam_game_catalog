@@ -1,6 +1,6 @@
  "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
@@ -45,7 +45,7 @@ export default function HomeCatalog() {
   const [error, setError] = useState("");
 
   const carouselRef = useRef(null);
-  const scrollFrameRef = useRef(null);
+  const settleTimerRef = useRef(null);
 
   async function load() {
     setLoading(true);
@@ -82,123 +82,132 @@ export default function HomeCatalog() {
 
   useEffect(() => {
     load();
+
+    return () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
+      }
+    };
   }, []);
 
-  function scrollSelectedIntoView(index, behavior = "smooth") {
-    if (!games.length) return;
-
-    const nextIndex =
-      (index + games.length) % games.length;
-
-    setSelected(nextIndex);
-
+  const getNearestCardIndex = useCallback(() => {
     const carousel = carouselRef.current;
 
-    if (!carousel) return;
+    if (!carousel) {
+      return 0;
+    }
 
-    const card = carousel.querySelector(
-      `[data-game-index="${nextIndex}"]`
+    const cards = Array.from(
+      carousel.querySelectorAll("[data-game-index]")
     );
 
-    if (!card) return;
+    if (!cards.length) {
+      return 0;
+    }
 
-    card.scrollIntoView({
-      behavior,
-      block: "nearest",
-      inline: "center",
+    const carouselRect = carousel.getBoundingClientRect();
+    const center = carouselRect.left + carouselRect.width / 2;
+
+    let nearestIndex = 0;
+    let nearestDistance = Infinity;
+
+    cards.forEach((card) => {
+      const rect = card.getBoundingClientRect();
+      const cardCenter = rect.left + rect.width / 2;
+      const distance = Math.abs(cardCenter - center);
+
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearestIndex = Number(card.dataset.gameIndex);
+      }
     });
-  }
 
-  function move(delta) {
-    if (!games.length) return;
-    scrollSelectedIntoView(selected + delta);
-  }
+    return nearestIndex;
+  }, []);
 
   useEffect(() => {
     const carousel = carouselRef.current;
 
-    if (!carousel) return;
+    if (!carousel) {
+      return;
+    }
 
-    const syncSelectedWithScroll = () => {
-      if (scrollFrameRef.current) {
-        cancelAnimationFrame(scrollFrameRef.current);
+    const handleScroll = () => {
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
       }
 
-      scrollFrameRef.current = requestAnimationFrame(() => {
-        const cards = Array.from(
-          carousel.querySelectorAll("[data-game-index]")
-        );
-
-        if (!cards.length) return;
-
-        const carouselRect =
-          carousel.getBoundingClientRect();
-
-        const carouselCenter =
-          carouselRect.left + carouselRect.width / 2;
-
-        let nearestIndex = 0;
-        let nearestDistance = Infinity;
-
-        cards.forEach((card) => {
-          const rect = card.getBoundingClientRect();
-
-          const cardCenter =
-            rect.left + rect.width / 2;
-
-          const distance = Math.abs(
-            cardCenter - carouselCenter
-          );
-
-          if (distance < nearestDistance) {
-            nearestDistance = distance;
-            nearestIndex = Number(
-              card.dataset.gameIndex
-            );
-          }
-        });
-
-        setSelected((current) =>
-          current === nearestIndex
-            ? current
-            : nearestIndex
-        );
-      });
+      settleTimerRef.current = setTimeout(() => {
+        setSelected(getNearestCardIndex());
+      }, 110);
     };
 
-    carousel.addEventListener(
-      "scroll",
-      syncSelectedWithScroll,
-      { passive: true }
-    );
-
-    window.addEventListener(
-      "resize",
-      syncSelectedWithScroll
-    );
+    carousel.addEventListener("scroll", handleScroll, {
+      passive: true,
+    });
 
     return () => {
-      carousel.removeEventListener(
-        "scroll",
-        syncSelectedWithScroll
-      );
+      carousel.removeEventListener("scroll", handleScroll);
 
-      window.removeEventListener(
-        "resize",
-        syncSelectedWithScroll
-      );
-
-      if (scrollFrameRef.current) {
-        cancelAnimationFrame(
-          scrollFrameRef.current
-        );
+      if (settleTimerRef.current) {
+        clearTimeout(settleTimerRef.current);
       }
     };
-  }, [games]);
+  }, [games, getNearestCardIndex]);
+
+  const scrollToGame = useCallback(
+    (index, behavior = "smooth") => {
+      if (!games.length) {
+        return;
+      }
+
+      const nextIndex =
+        (index + games.length) % games.length;
+
+      const carousel = carouselRef.current;
+
+      if (!carousel) {
+        return;
+      }
+
+      const card = carousel.querySelector(
+        `[data-game-index="${nextIndex}"]`
+      );
+
+      if (!card) {
+        return;
+      }
+
+      const left =
+        card.offsetLeft -
+        (carousel.clientWidth - card.offsetWidth) / 2;
+
+      setSelected(nextIndex);
+
+      carousel.scrollTo({
+        left: Math.max(0, left),
+        behavior,
+      });
+    },
+    [games.length]
+  );
+
+  const move = useCallback(
+    (delta) => {
+      if (!games.length) {
+        return;
+      }
+
+      scrollToGame(selected + delta);
+    },
+    [games.length, scrollToGame, selected]
+  );
 
   useEffect(() => {
     function handleKeyDown(event) {
-      if (!games.length) return;
+      if (!games.length) {
+        return;
+      }
 
       if (event.key === "ArrowLeft") {
         event.preventDefault();
@@ -211,17 +220,12 @@ export default function HomeCatalog() {
       }
     }
 
-    window.addEventListener(
-      "keydown",
-      handleKeyDown
-    );
+    window.addEventListener("keydown", handleKeyDown);
 
-    return () =>
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown
-      );
-  });
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [games.length, move]);
 
   const game = games[selected];
 
@@ -240,8 +244,8 @@ export default function HomeCatalog() {
           <h1>Игры, которые стоит попробовать</h1>
 
           <p className="hero-text">
-            Выбирай игру в центре экрана и переходи
-            прямо на её страницу в Steam.
+            Выбирай игру в центре экрана и переходи прямо на её
+            страницу в Steam.
           </p>
 
           <div className="hero-line" />
@@ -251,29 +255,24 @@ export default function HomeCatalog() {
           <button
             className="nav-arrow"
             onClick={() => move(-1)}
-            aria-label="Предыдущая"
+            aria-label="Предыдущая игра"
             type="button"
           >
             ‹
           </button>
 
           <div className="carousel-shell">
-            <div
-              className="carousel"
-              ref={carouselRef}
-            >
+            <div className="carousel" ref={carouselRef}>
+              <div className="carousel-edge" aria-hidden="true" />
+
               {games.map((item, index) => (
                 <article
                   key={item.id}
                   data-game-index={index}
                   className={`game-card ${
-                    index === selected
-                      ? "active"
-                      : ""
+                    index === selected ? "active" : ""
                   }`}
-                  onClick={() =>
-                    scrollSelectedIntoView(index)
-                  }
+                  onClick={() => scrollToGame(index)}
                 >
                   <div className="card-image-wrap">
                     <img
@@ -290,6 +289,8 @@ export default function HomeCatalog() {
                   </div>
                 </article>
               ))}
+
+              <div className="carousel-edge" aria-hidden="true" />
             </div>
 
             {games.length > 1 && (
@@ -302,9 +303,7 @@ export default function HomeCatalog() {
                     key={item.id}
                     type="button"
                     className={`carousel-dot ${
-                      index === selected
-                        ? "active"
-                        : ""
+                      index === selected ? "active" : ""
                     }`}
                     aria-label={`Открыть ${item.title}`}
                     aria-current={
@@ -313,9 +312,7 @@ export default function HomeCatalog() {
                         : undefined
                     }
                     title={item.title}
-                    onClick={() =>
-                      scrollSelectedIntoView(index)
-                    }
+                    onClick={() => scrollToGame(index)}
                   >
                     <span />
                   </button>
@@ -327,7 +324,7 @@ export default function HomeCatalog() {
           <button
             className="nav-arrow"
             onClick={() => move(1)}
-            aria-label="Следующая"
+            aria-label="Следующая игра"
             type="button"
           >
             ›
