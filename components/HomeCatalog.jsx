@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { supabase } from "../lib/supabase";
 
@@ -33,8 +33,14 @@ export default function HomeCatalog() {
   const [games, setGames] = useState([]);
   const [selected, setSelected] = useState(0);
   const [extensionUrl, setExtensionUrl] = useState("");
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const carouselRef = useRef(null);
+  const sliderRef = useRef(null);
+  const rafRef = useRef(null);
+  const draggingSliderRef = useRef(false);
 
   async function load() {
     setLoading(true);
@@ -69,21 +75,129 @@ export default function HomeCatalog() {
     load();
   }, []);
 
-  useEffect(() => {
-    function handleKey(e) {
-      if (!games.length) return;
-      if (e.key === "ArrowLeft") setSelected((i) => (i - 1 + games.length) % games.length);
-      if (e.key === "ArrowRight") setSelected((i) => (i + 1) % games.length);
+  function syncCarouselState() {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const maxScroll = carousel.scrollWidth - carousel.clientWidth;
+    const progress = maxScroll > 0 ? (carousel.scrollLeft / maxScroll) * 100 : 0;
+    setScrollProgress(Math.max(0, Math.min(100, progress)));
+
+    if (!games.length || draggingSliderRef.current) return;
+
+    const cards = [...carousel.querySelectorAll("[data-game-index]")];
+    if (!cards.length) return;
+
+    const center = carousel.getBoundingClientRect().left + carousel.clientWidth / 2;
+    let nearest = 0;
+    let nearestDistance = Infinity;
+
+    for (const card of cards) {
+      const rect = card.getBoundingClientRect();
+      const distance = Math.abs(rect.left + rect.width / 2 - center);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        nearest = Number(card.dataset.gameIndex);
+      }
     }
 
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [games.length]);
+    setSelected((current) => current === nearest ? current : nearest);
+  }
+
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const onScroll = () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(syncCarouselState);
+    };
+
+    const onResize = () => syncCarouselState();
+
+    carousel.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onResize);
+    syncCarouselState();
+
+    return () => {
+      carousel.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onResize);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [games]);
+
+  function scrollToGame(index, behavior = "smooth") {
+    if (!games.length) return;
+
+    const nextIndex = (index + games.length) % games.length;
+    setSelected(nextIndex);
+
+    const carousel = carouselRef.current;
+    const card = carousel?.querySelector(`[data-game-index="${nextIndex}"]`);
+    if (!card) return;
+
+    card.scrollIntoView({
+      behavior,
+      block: "nearest",
+      inline: "center",
+    });
+  }
 
   function move(delta) {
-    if (!games.length) return;
-    setSelected((i) => (i + delta + games.length) % games.length);
+    scrollToGame(selected + delta);
   }
+
+  function setSliderFromClientX(clientX, behavior = "auto") {
+    const slider = sliderRef.current;
+    const carousel = carouselRef.current;
+    if (!slider || !carousel) return;
+
+    const rect = slider.getBoundingClientRect();
+    const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const maxScroll = Math.max(0, carousel.scrollWidth - carousel.clientWidth);
+
+    carousel.scrollTo({
+      left: maxScroll * ratio,
+      behavior,
+    });
+  }
+
+  function onSliderPointerDown(event) {
+    event.preventDefault();
+    draggingSliderRef.current = true;
+    setSliderFromClientX(event.clientX, "auto");
+
+    const onMove = (moveEvent) => {
+      setSliderFromClientX(moveEvent.clientX, "auto");
+    };
+
+    const onUp = () => {
+      draggingSliderRef.current = false;
+      syncCarouselState();
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  }
+
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (!games.length) return;
+
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        move(-1);
+      } else if (event.key === "ArrowRight") {
+        event.preventDefault();
+        move(1);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  });
 
   const game = games[selected];
 
@@ -106,31 +220,73 @@ export default function HomeCatalog() {
         </section>
 
         <section className="carousel-section">
-          <button className="nav-arrow" onClick={() => move(-1)} aria-label="Предыдущая">‹</button>
+          <button
+            className="nav-arrow"
+            onClick={() => move(-1)}
+            aria-label="Предыдущая игра"
+            type="button"
+          >
+            ‹
+          </button>
 
-          <div className="carousel">
-            {games.map((item, index) => (
-              <article
-                key={item.id}
-                className={`game-card ${index === selected ? "active" : ""}`}
-                onClick={() => setSelected(index)}
+          <div className="carousel-shell">
+            <div className="carousel" ref={carouselRef}>
+              {games.map((item, index) => (
+                <article
+                  key={item.id}
+                  data-game-index={index}
+                  className={`game-card ${index === selected ? "active" : ""}`}
+                  onClick={() => scrollToGame(index)}
+                >
+                  <div className="card-image-wrap">
+                    <img className="card-image" src={item.image_url} alt={item.title} />
+                    <div className="card-shine" />
+                  </div>
+                  <div className="card-title">{item.title}</div>
+                </article>
+              ))}
+            </div>
+
+            {games.length > 1 && (
+              <div
+                ref={sliderRef}
+                className="carousel-slider"
+                onPointerDown={onSliderPointerDown}
+                role="slider"
+                aria-label="Прокрутка игр"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(scrollProgress)}
+                tabIndex={0}
               >
-                <div className="card-image-wrap">
-                  <img className="card-image" src={item.image_url} alt={item.title} />
-                  <div className="card-shine" />
+                <div className="carousel-slider-track">
+                  <div
+                    className="carousel-slider-fill"
+                    style={{ width: `${scrollProgress}%` }}
+                  />
+                  <div
+                    className="carousel-slider-thumb"
+                    style={{ left: `${scrollProgress}%` }}
+                  >
+                    <span />
+                  </div>
                 </div>
-                <div className="card-title">{item.title}</div>
-              </article>
-            ))}
+              </div>
+            )}
           </div>
 
-          <button className="nav-arrow" onClick={() => move(1)} aria-label="Следующая">›</button>
+          <button
+            className="nav-arrow"
+            onClick={() => move(1)}
+            aria-label="Следующая игра"
+            type="button"
+          >
+            ›
+          </button>
         </section>
 
         {loading ? (
-          <section className="details">
-            <div className="empty"><p>Загружаем игры…</p></div>
-          </section>
+          <section className="details"><div className="empty"><p>Загружаем игры…</p></div></section>
         ) : error ? (
           <section className="details">
             <div className="empty">
@@ -177,9 +333,16 @@ export default function HomeCatalog() {
             <div>
               <p className="eyebrow">STEAM EXTENSION</p>
               <h3>Добавляй игры в каталог прямо со страницы Steam</h3>
-              <p>Открой игру в Steam, нажми «Добавить в каталог» — и она появится здесь автоматически.</p>
+              <p>
+                Открой игру в Steam, нажми «Добавить в каталог» — и она появится здесь автоматически.
+              </p>
             </div>
-            <a className="secondary-btn extension-banner-btn" href={extensionUrl} target="_blank" rel="noreferrer">
+            <a
+              className="secondary-btn extension-banner-btn"
+              href={extensionUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
               Скачать расширение ↗
             </a>
           </section>
